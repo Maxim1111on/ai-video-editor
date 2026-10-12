@@ -718,7 +718,8 @@ def make_handler(token):
 
         def authorized(self):
             host = (self.headers.get("Host") or "").split(":")[0]
-            if host not in ("127.0.0.1", "localhost"):   # DNS rebinding: another name pointing here
+            allowed = {"127.0.0.1", "localhost", os.environ.get("AI_EDITOR_PUBLIC_HOST") or ""}
+            if host not in allowed:   # DNS rebinding: another name pointing here, unless opted in
                 return False
             q = parse_qs(urlsplit(self.path).query).get("t", [""])[0]
             c = SimpleCookie()
@@ -1316,6 +1317,18 @@ def demo():
             raise AssertionError(f"{p} answered without the token")
         except urllib.error.HTTPError as e:
             assert e.code == 403, (p, e.code)
+    # AI_EDITOR_PUBLIC_HOST: unset, a tunnel's Host is refused same as any other; set, it is allowed
+    try:
+        urllib.request.urlopen(urllib.request.Request(base + "/state?t=" + tok, headers={"Host": "edit.example"}))
+        raise AssertionError("a public host answered without AI_EDITOR_PUBLIC_HOST set")
+    except urllib.error.HTTPError as e:
+        assert e.code == 403, e.code
+    os.environ["AI_EDITOR_PUBLIC_HOST"] = "edit.example"
+    try:
+        r = urllib.request.urlopen(urllib.request.Request(base + "/state?t=" + tok, headers={"Host": "edit.example"}))
+        assert r.status == 200
+    finally:
+        del os.environ["AI_EDITOR_PUBLIC_HOST"]
     r = urllib.request.urlopen(base + "/?t=" + tok)
     assert b"ai editor" in r.read() and "SameSite=Strict" in r.headers["Set-Cookie"]
     # Claude's question (askhook.py): the hook posts it, the showing page polls it and answers, the hook clears it
