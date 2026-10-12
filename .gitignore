@@ -15,3 +15,9 @@ eval-results/
 /*.MOV
 .claude/settings.local.json
 .context/
+
+# Never commit secrets
+.env
+.env.*
+*.pem
+.cloudflared/
