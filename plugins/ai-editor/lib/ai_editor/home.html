@@ -997,7 +997,11 @@ function styleSide(){
 function vHome(){
   const vids=L.videos,ready=vids.filter(v=>v.status==='ready').length,making=vids.filter(v=>v.status==='making'||v.status==='cutting').length;
   const rec=(R?R.videos:[]).slice(0,4);
+  const cj=latest('chat'),cjLine=!cj?'':cj.state==='queued'?(S.listening?'Claude is picking this up.':`Waiting for Claude. Type ${CMD} in Terminal.`):cj.state==='taken'?`Claude: ${esc((cj.steps.at(-1)||{}).text||'working on it')}`:cj.state==='done'?esc((cj.result||{}).step||'Done.'):cj.state==='failed'?esc(cj.error):'';
   return `<div class="col grow" style="min-width:0;padding:12px 14px 0;gap:28px"><div><h1>Welcome back</h1>${ready||making?`<p class="lede" style="margin-top:10px">${[ready?`${ready} ready for you to watch.`:'',making?`${making} still being made.`:''].filter(Boolean).join(' ')}</p>`:''}</div>
+    <div class="panel" style="padding:20px 24px;gap:12px"><div class="h">Ask for anything</div>
+      <div class="row" style="align-items:stretch"><textarea id="chatbox" class="input" style="height:64px;padding:10px 12px;font:14px/20px 'Inter',system-ui,sans-serif;resize:vertical" placeholder="edit my video like @sam.gaudet, make captions bigger, study @handle..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chatSend()}"></textarea><button class="btn dark" style="height:auto" onclick="chatSend()">Send</button></div>
+      ${cjLine?`<div class="muted" style="color:var(--ink)">${cjLine}</div>`:''}</div>
     <div class="panel" style="padding:24px 28px;gap:22px"><div class="between" style="align-items:flex-start;flex-wrap:wrap"><div><div style="font-size:22px;font-weight:600">New video</div></div><button class="btn dark" style="height:52px;padding:0 40px;font-size:16px" onclick="rgo('new')">+ New video</button></div>
       <div class="row recrow" style="gap:12px;align-items:flex-end"><div class="droptile" id="droptile" style="width:150px;height:150px" onclick="rgo('new')">${UP}<div style="font-weight:500;font-size:13px">Drop files here</div><div class="muted" style="font-size:12px">or choose files</div></div>${rec.map(v=>`<button class="clip" style="width:84px" onclick="nv.sel=[${esc(JSON.stringify(v.path))}];rgo('new')"><div class="pic" style="width:84px;height:150px;background-image:url('${esc(v.thumb)}')"></div></button>`).join('')}${rec[0]?`<div class="reclabel" style="padding-left:12px;min-width:140px"><div style="font-size:15px">${esc(rec[0].name)}</div><div class="muted" style="margin-top:4px;font-size:14px">${esc(rec[0].where)} · ${ago(rec[0].mtime)}</div></div>`
         :[0,1,2].map(i=>`<div class="clip ex" style="width:84px"><div class="pic" style="width:84px;height:150px;background-image:url('${DEMO(i)}')"></div></div>`).join('')+`<div class="reclabel muted" style="padding-left:12px;min-width:140px;font-size:14px;line-height:20px">Example clips. Your newest clips show here.</div>`}</div></div>
@@ -1070,6 +1074,7 @@ async function loadStyle(){if(!ui.sp)return;try{const r=await fetch('/style?id='
 async function setCtl(key,value){const r=await post('/style/set',{id:ui.sp,key,value});if(r._ok){ui.spage=r;loadLib()}else alert(r.error||'That did not save.');render()}
 async function forgetRule(id){const r=await post('/style/forget',{id:ui.sp,rule:id});if(r._ok){ui.spage=r;loadLib()}render()}
 async function tellChange(){const t=($('#tell')||{}).value||'';if(!t.trim())return;const r=await queue({type:'style-change',style:ui.sp,text:t.trim()});if(r._ok){$('#tell').value='';loadStyle()}}
+async function chatSend(){const t=($('#chatbox')||{}).value||'';if(!t.trim())return;const r=await queue({type:'chat',text:t.trim()});if(r._ok)$('#chatbox').value=''}
 const ZOOMS=[[0,'None','Camera stays still'],[3,'A few','About 3 a minute'],[6,'Some','About 6 a minute'],[10,'Lots','About 10 a minute']];
 const CUTS=[[0.25,'Relaxed','Keeps your pauses'],[0.15,'Natural','Short breaths stay'],[0.12,'Tight','Cuts every pause']];
 function preview(P){
