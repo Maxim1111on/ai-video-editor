@@ -172,6 +172,34 @@ each reported with `status update --step "..."`; if the `claude plugin` commands
 to type `/plugin marketplace update nextwork` and `/plugin update ai-editor@nextwork`. Then
 `status update --done` and ask them to type `/reload-plugins`. A git clone: `git pull` in the plugin folder.
 
+### `JOB chat text=<the user's words> root=<dir>`
+
+The user typed a free instruction into the Home tab's persistent chat box — not scoped to one
+style or one video. Route the words the same way you already route anything said directly in this
+session:
+
+- A link, handle, or "study @x" → the creator-teardown quick-mode path (as if it arrived as a
+  `creator` item from `links.py route`).
+- "edit my video" / a dropped or named video → the `start` skill's pipeline (same as a `JOB video`).
+- A style correction ("captions bigger", "fewer zooms") → the same `taste.py add` /
+  `profile.py set` path the `style-change` job already uses, scoped to `mine` unless a style was
+  named.
+- A settings/profile change ("switch to 16:9", "use my brand colors") → `profile.py set ...`
+  directly.
+- Anything not actionable (a question) → answer it directly with `status chat --step "<answer>"
+  --done`; no other side effect.
+
+Report progress the same way every other job does:
+
+```bash
+python3 "$H" status chat --step "..." [--detail "..."] [--progress 0.4]
+python3 "$H" status chat --result '<json>' --done
+```
+
+The `--result` JSON may include a `step` string — shown verbatim as the finished message on the
+page when present, falling back to "Done." when absent. Use it for anything the done-state message
+should say beyond what the last `--step` already showed.
+
 ### `JOB cancel teardown`
 
 Stop the running teardown commands (TaskStop) and say so in one line.

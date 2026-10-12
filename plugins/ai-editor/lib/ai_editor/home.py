@@ -71,7 +71,7 @@ from review import load, now, save  # noqa: E402  (atomic write; review.py's ser
 HTML = Path(__file__).with_name("home.html")
 SETUP = Path(__file__).resolve().parents[2] / "skills" / "setup" / "scripts" / "setup.py"
 BEAT_S = 6
-JOBS = ("teardown", "skill", "video", "modal", "setup", "style-change", "update")
+JOBS = ("teardown", "skill", "video", "modal", "setup", "style-change", "update", "chat")
 TAKE = ("captions", "pace", "graphics", "sound")          # the page's parts; editplan.py --take names
 KEY_NAMES = tuple(keys.VARS)
 TOOLS = {"python": ("Python", "runs the editor"), "ffmpeg": ("ffmpeg", "cuts and joins video"),
@@ -643,6 +643,8 @@ def job_line(j, root):
     if j["type"] == "style-change":
         return f"JOB style-change {'my-style' if a['style'] == 'mine' else a['style']}" + \
             (f" style={a['path']}" if a.get("path") else "") + f" text={a['text']}"
+    if j["type"] == "chat":
+        return f"JOB chat text={a['text']} root={root}"
     return f"JOB {j['type']}"
 
 
@@ -1042,6 +1044,11 @@ def make_handler(token):
                 if not text:
                     return self.send(400, {"error": "say what to change"})
                 args = {"style": b.get("style") or "mine", "path": str(sp) if sp else "", "text": text}
+            elif kind == "chat":   # the persistent chat bar: free text, Claude decides what it means
+                text = re.sub(r"\s+", " ", str(b.get("text") or "")).strip()[:400]
+                if not text:
+                    return self.send(400, {"error": "say what you want"})
+                args = {"text": text}
             else:
                 return self.send(400, {"error": "unknown job"})
             j = update(lambda d: queue(d, kind, args))
@@ -1559,6 +1566,27 @@ def demo():
     out(cmd_status, argparse.Namespace(job="style-change", step="Saved: no sound effects", detail=None, progress=None,
                                        result=json.dumps({"changed": ["No sound effects"]}), done=True, failed=None))
     assert get("/style?id=mine")["job"]["result"]["changed"] == ["No sound effects"]
+    # The persistent chat bar: free text queues as its own job kind, same mechanics as style-change
+    post("/job", {"type": "chat", "text": "  make the captions a bit bigger  "})
+    assert out(cmd_wait, 0.01) == f"JOB chat text=make the captions a bit bigger root={root.resolve()}"
+    out(cmd_status, argparse.Namespace(job="chat", step="Claude: checking your style", detail=None,
+                                        progress=None, result=None, done=False, failed=None))
+    assert get("/state")["jobs"][-1]["steps"][-1]["text"] == "Claude: checking your style"
+    # two queued before either is taken: wait hands them out one at a time, in order
+    post("/job", {"type": "chat", "text": "first"})
+    post("/job", {"type": "chat", "text": "second"})
+    assert "text=first" in out(cmd_wait, 0.01)
+    assert "text=second" in out(cmd_wait, 0.01)
+    # over 400 chars: truncated, not rejected
+    post("/job", {"type": "chat", "text": "x" * 500})
+    assert len(get("/state")["jobs"][-1]["args"]["text"]) == 400
+    out(cmd_wait, 0.01)   # consume it: an un-taken queued job would steal a later unrelated wait's turn
+    # empty or whitespace-only: rejected before it ever reaches the queue
+    try:
+        post("/job", {"type": "chat", "text": "   "})
+        raise AssertionError("empty chat text should be rejected")
+    except urllib.error.HTTPError as e:
+        assert e.code == 400, e.code
     # previews prefer raw takes: a finished render (its own captions) is never used behind a sample caption
     assert is_output(root / "edits" / "x" / "render.mp4") and is_output(tmp / "v-edit2.mp4") and is_output(root / "edits" / "x" / "review" / "a.mp4")
     assert is_output(ed / "anything.mp4", [ed]) and not is_output(root / "videos" / "drop.mp4", [ed])
