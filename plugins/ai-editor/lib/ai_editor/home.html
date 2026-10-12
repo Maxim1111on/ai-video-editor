@@ -1141,7 +1141,12 @@ function render(){
   const keep=document.activeElement&&document.activeElement.id,pos=keep&&document.activeElement.selectionStart,val=keep&&document.activeElement.value;
   if(returning()&&!ui.onboard){
     if(!rv)rv=S.jobs.some(j=>j.type==='video'&&(j.state==='queued'||j.state==='taken'))&&!L.videos.some(v=>v.status!=='cutting')?(nv.making=S.jobs.filter(j=>j.type==='video'&&(j.state==='queued'||j.state==='taken')).map(j=>j.id),'making'):L.videos.length?'home':'new';
+    // a status poll re-renders #main every 1.5s; on desktop main>.col/.panel/.grow is what actually
+    // scrolls (main itself never does, CSS "fit the window"), and a fresh innerHTML always starts
+    // that child at scrollTop 0, so restore it after render rebuilds the element.
+    const sc0=$('#main')&&$('#main').firstElementChild,st0=sc0?sc0.scrollTop:0;
     rrender();
+    const sc1=$('#main')&&$('#main').firstElementChild;if(sc1)sc1.scrollTop=st0;
   }else{
   $('#steps').className='steps';Object.assign($('#live').style,{width:'',minWidth:'',maxWidth:'',whiteSpace:''});
   const auto=autoView();let v=view??auto;
