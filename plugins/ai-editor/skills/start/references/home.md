@@ -28,9 +28,13 @@ Then wait for `wait` to finish. Each time it prints a job, start a new `wait` in
 straight away (so Cancel and the next job reach you), then do the job. `ALREADY` means a `wait` is
 running: leave it.
 
-For a branded public URL instead of `127.0.0.1`, also start `cloudflared tunnel run <name>` in the
-background alongside `serve` and `wait` — one-time setup in `docs/tunnel-setup.md`. The page and
-job queue behave identically either way; the tunnel only changes how the browser reaches them.
+For a branded public URL instead of `127.0.0.1`, run `serve` with `AI_EDITOR_PUBLIC_HOST=<the
+tunnel's hostname>` set (its request gate otherwise refuses any Host but `127.0.0.1`/`localhost`),
+and also start `cloudflared tunnel run <name>` in the background alongside `serve` and `wait` —
+one-time setup in `docs/tunnel-setup.md`. The page and job queue behave identically either way; the
+tunnel only changes how the browser reaches them. The review page (`review.py`) is its own server
+on a different port and is not exposed by this tunnel: approving a cut or a styled edit still needs
+`127.0.0.1` access (on the same network as the Mac, or directly on it) until a later phase covers it.
 
 ## Questions
 

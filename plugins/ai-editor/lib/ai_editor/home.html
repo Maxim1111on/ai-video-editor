@@ -11,12 +11,12 @@
 <script>try{const t=localStorage.getItem('ave-home-theme');if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script>
 <style>
 :root{--bg:#FAFAFA;--panel:#FFFFFF;--ink:#111827;--t2:#6B7280;--t3:#6B7280;--t4:#9CA3AF;--line:#E5E7EB;--soft:#F9FAFB;--ring:#6C63FF;
-  --onink:#FFFFFF;--accent:#6C63FF;--accent-hover:#5B52E8;--mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color-scheme:light}
+  --onink:#FFFFFF;--onaccent:#FFFFFF;--accent:#6C63FF;--accent-hover:#5B52E8;--mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color-scheme:light}
 /* dark: the OS setting until the user picks with the header switch (html[data-theme]), as on the review page */
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0F0F0F;--panel:#1A1A1A;--ink:#F5F5F5;--t2:#888888;--t3:#888888;--t4:#6B6B6B;
-  --line:#2A2A2A;--soft:#161616;--ring:#6C63FF;--onink:#F5F5F5;--accent:#6C63FF;--accent-hover:#5B52E8;color-scheme:dark}}
+  --line:#2A2A2A;--soft:#161616;--ring:#6C63FF;--onink:#0F0F0F;--onaccent:#FFFFFF;--accent:#6C63FF;--accent-hover:#5B52E8;color-scheme:dark}}
 :root[data-theme=dark]{--bg:#0F0F0F;--panel:#1A1A1A;--ink:#F5F5F5;--t2:#888888;--t3:#888888;--t4:#6B6B6B;
-  --line:#2A2A2A;--soft:#161616;--ring:#6C63FF;--onink:#F5F5F5;--accent:#6C63FF;--accent-hover:#5B52E8;color-scheme:dark}
+  --line:#2A2A2A;--soft:#161616;--ring:#6C63FF;--onink:#0F0F0F;--onaccent:#FFFFFF;--accent:#6C63FF;--accent-hover:#5B52E8;color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
 body{background:var(--bg);color:var(--ink);font:14px/20px 'Inter',system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;overflow-wrap:anywhere}
@@ -54,14 +54,14 @@ h1{margin:0;font-size:40px;line-height:44px;font-weight:700;letter-spacing:-.025
 .dot{width:7px;height:7px;border-radius:4px;background:var(--ink)}
 .ring{width:7px;height:7px;border-radius:4px;border:1.5px solid var(--ring)}
 .btn{white-space:nowrap;height:42px;padding:0 22px;border-radius:8px;border:1px solid var(--ink);background:var(--panel);font-weight:600;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:8px}
-.btn.dark{background:var(--accent);color:var(--onink)}
+.btn.dark{background:var(--accent);color:var(--onaccent)}
 .btn.quiet{border-color:var(--line);background:var(--bg);color:var(--t2);font-weight:500;padding:0 18px}
 .btn:disabled{opacity:.45;cursor:default}
 .wide{width:100%;height:58px;border-radius:14px;font-size:16px}
 .input{height:40px;border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:0 12px;font:13px/16px var(--mono);color:var(--ink);flex:1;min-width:0}
 .input:focus{outline:none;border:1.5px solid var(--accent)}
 .small{height:40px;width:96px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-weight:500;color:var(--t2);flex-shrink:0}
-.small.dark{background:var(--accent);border-color:var(--accent);color:var(--onink);font-weight:600}
+.small.dark{background:var(--accent);border-color:var(--accent);color:var(--onaccent);font-weight:600}
 .lock{display:flex;gap:8px;align-items:center;background:var(--soft);border-radius:10px;padding:6px 10px;font-size:13px;line-height:16px;flex-shrink:0}
 .krow{display:flex;gap:28px;padding:18px 24px;border-top:1px solid var(--line)}
 .krow.focus{background:var(--bg)}
@@ -401,7 +401,7 @@ const PART_WHAT={captions:'Font, size and place',pace:'Cuts, pauses and zooms',g
 // creator-teardown quick mode, in order. Claude reports these step names (references/home.md).
 const PLAN=['Listed their videos','Downloaded the top 5 and 2 median','Transcribed every word','Measured cuts, zooms and camera moves','Reading captions and faces','Naming graphics','Sound effects and music','Writing the style'];
 const VIDEO_PLAN=[['Transcribe every word','about 20 s'],['Cut retakes and pauses','about 1 min'],['You watch the cut and leave notes','review page'],['Captions, zooms and graphics','about 3 min'],['You approve the edit and export','review page']];
-let S=null, view=null, ui={keys:{},likes:new Set(['captions','pace']),copy:null,paste:'',look:null,file:null,as:'creator',aspect:'9:16',show:{}};
+let S=null, view=null, ui={keys:{},likes:new Set(['captions','pace']),copy:null,paste:'',chat:'',look:null,file:null,as:'creator',aspect:'9:16',show:{}};
 try{const v=localStorage.getItem('ave-home-view');if(v)view=+v}catch(e){}
 
 async function post(u,b){const r=await fetch(u,{method:'POST',body:JSON.stringify(b||{})});let j={};try{j=await r.json()}catch(e){}return Object.assign(j,{_ok:r.ok})}
@@ -746,7 +746,7 @@ async function startCut(){const r=await queue({type:'video',path:ui.file.path,as
 
 // ---------------------------------------------------------------- returning user (Paper "J launcher + pick")
 // New video (pick clips) -> Pick a style -> Making your video; Home (welcome back), Your videos, My style, Settings.
-let L=null, R=null, rv=null;
+let L=null, R=null, rv=null, lastRv=null;
 const nv={sel:[],clips:{},join:true,aspect:'9:16',style:'mine',filter:'all',making:[],up:[]};
 const CMD='nextwork-editor';
 const UP='<svg width="22" height="22" viewBox="0 0 22 22"><path d="M11 15V5M7 9l4-4 4 4M4 15v2a1 1 0 001 1h12a1 1 0 001-1v-2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -1000,7 +1000,7 @@ function vHome(){
   const cj=latest('chat'),cjLine=!cj?'':cj.state==='queued'?(S.listening?'Claude is picking this up.':`Waiting for Claude. Type ${CMD} in Terminal.`):cj.state==='taken'?`Claude: ${esc((cj.steps.at(-1)||{}).text||'working on it')}`:cj.state==='done'?esc((cj.result||{}).step||'Done.'):cj.state==='failed'?esc(cj.error):'';
   return `<div class="col grow" style="min-width:0;padding:12px 14px 0;gap:28px"><div><h1>Welcome back</h1>${ready||making?`<p class="lede" style="margin-top:10px">${[ready?`${ready} ready for you to watch.`:'',making?`${making} still being made.`:''].filter(Boolean).join(' ')}</p>`:''}</div>
     <div class="panel" style="padding:20px 24px;gap:12px"><div class="h">Ask for anything</div>
-      <div class="row" style="align-items:stretch"><textarea id="chatbox" class="input" style="height:64px;padding:10px 12px;font:14px/20px 'Inter',system-ui,sans-serif;resize:vertical" placeholder="edit my video like @sam.gaudet, make captions bigger, study @handle..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chatSend()}"></textarea><button class="btn dark" style="height:auto" onclick="chatSend()">Send</button></div>
+      <div class="row" style="align-items:stretch"><textarea id="chatbox" class="input" style="height:64px;padding:10px 12px;font:14px/20px 'Inter',system-ui,sans-serif;resize:vertical" placeholder="edit my video like @sam.gaudet, make captions bigger, study @handle..." oninput="ui.chat=this.value" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();chatSend()}">${esc(ui.chat)}</textarea><button class="btn dark" style="height:auto" onclick="chatSend()">Send</button></div>
       ${cjLine?`<div class="muted" style="color:var(--ink)">${cjLine}</div>`:''}</div>
     <div class="panel" style="padding:24px 28px;gap:22px"><div class="between" style="align-items:flex-start;flex-wrap:wrap"><div><div style="font-size:22px;font-weight:600">New video</div></div><button class="btn dark" style="height:52px;padding:0 40px;font-size:16px" onclick="rgo('new')">+ New video</button></div>
       <div class="row recrow" style="gap:12px;align-items:flex-end"><div class="droptile" id="droptile" style="width:150px;height:150px" onclick="rgo('new')">${UP}<div style="font-weight:500;font-size:13px">Drop files here</div><div class="muted" style="font-size:12px">or choose files</div></div>${rec.map(v=>`<button class="clip" style="width:84px" onclick="nv.sel=[${esc(JSON.stringify(v.path))}];rgo('new')"><div class="pic" style="width:84px;height:150px;background-image:url('${esc(v.thumb)}')"></div></button>`).join('')}${rec[0]?`<div class="reclabel" style="padding-left:12px;min-width:140px"><div style="font-size:15px">${esc(rec[0].name)}</div><div class="muted" style="margin-top:4px;font-size:14px">${esc(rec[0].where)} · ${ago(rec[0].mtime)}</div></div>`
@@ -1074,7 +1074,7 @@ async function loadStyle(){if(!ui.sp)return;try{const r=await fetch('/style?id='
 async function setCtl(key,value){const r=await post('/style/set',{id:ui.sp,key,value});if(r._ok){ui.spage=r;loadLib()}else alert(r.error||'That did not save.');render()}
 async function forgetRule(id){const r=await post('/style/forget',{id:ui.sp,rule:id});if(r._ok){ui.spage=r;loadLib()}render()}
 async function tellChange(){const t=($('#tell')||{}).value||'';if(!t.trim())return;const r=await queue({type:'style-change',style:ui.sp,text:t.trim()});if(r._ok){$('#tell').value='';loadStyle()}}
-async function chatSend(){const t=($('#chatbox')||{}).value||'';if(!t.trim())return;const r=await queue({type:'chat',text:t.trim()});if(r._ok)$('#chatbox').value=''}
+async function chatSend(){const t=ui.chat||'';if(!t.trim())return;const r=await queue({type:'chat',text:t.trim()});if(r._ok){ui.chat='';render()}}
 const ZOOMS=[[0,'None','Camera stays still'],[3,'A few','About 3 a minute'],[6,'Some','About 6 a minute'],[10,'Lots','About 10 a minute']];
 const CUTS=[[0.25,'Relaxed','Keeps your pauses'],[0.15,'Natural','Short breaths stay'],[0.12,'Tight','Cuts every pause']];
 function preview(P){
@@ -1141,12 +1141,17 @@ function render(){
   const keep=document.activeElement&&document.activeElement.id,pos=keep&&document.activeElement.selectionStart,val=keep&&document.activeElement.value;
   if(returning()&&!ui.onboard){
     if(!rv)rv=S.jobs.some(j=>j.type==='video'&&(j.state==='queued'||j.state==='taken'))&&!L.videos.some(v=>v.status!=='cutting')?(nv.making=S.jobs.filter(j=>j.type==='video'&&(j.state==='queued'||j.state==='taken')).map(j=>j.id),'making'):L.videos.length?'home':'new';
-    // a status poll re-renders #main every 1.5s; on desktop main>.col/.panel/.grow is what actually
-    // scrolls (main itself never does, CSS "fit the window"), and a fresh innerHTML always starts
-    // that child at scrollTop 0, so restore it after render rebuilds the element.
-    const sc0=$('#main')&&$('#main').firstElementChild,st0=sc0?sc0.scrollTop:0;
+    // a status poll re-renders #main every 1.5s; on desktop the elements CSS actually makes
+    // scrollable are main>.col/.panel/.grow and .setcols>.col (main itself never scrolls, "fit the
+    // window"), and a fresh innerHTML always starts each of them at scrollTop 0. Restore every one,
+    // by position, but only when staying on the same view: a real navigation (rgo) should still
+    // open the new view at the top, not inherit the old view's scroll position.
+    const SCROLL_SEL='#main>.col,#main>.panel,#main>.grow,#main .setcols>.col';
+    const sameView=lastRv===rv;
+    const sts0=sameView?[...document.querySelectorAll(SCROLL_SEL)].map(e=>e.scrollTop):[];
     rrender();
-    const sc1=$('#main')&&$('#main').firstElementChild;if(sc1)sc1.scrollTop=st0;
+    if(sameView)[...document.querySelectorAll(SCROLL_SEL)].forEach((e,i)=>{if(sts0[i])e.scrollTop=sts0[i]});
+    lastRv=rv;
   }else{
   $('#steps').className='steps';Object.assign($('#live').style,{width:'',minWidth:'',maxWidth:'',whiteSpace:''});
   const auto=autoView();let v=view??auto;

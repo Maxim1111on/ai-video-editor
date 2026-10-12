@@ -720,7 +720,8 @@ def make_handler(token):
 
         def authorized(self):
             host = (self.headers.get("Host") or "").split(":")[0]
-            allowed = {"127.0.0.1", "localhost", os.environ.get("AI_EDITOR_PUBLIC_HOST") or ""}
+            public = os.environ.get("AI_EDITOR_PUBLIC_HOST")
+            allowed = {"127.0.0.1", "localhost"} | ({public} if public else set())
             if host not in allowed:   # DNS rebinding: another name pointing here, unless opted in
                 return False
             q = parse_qs(urlsplit(self.path).query).get("t", [""])[0]
@@ -1324,6 +1325,17 @@ def demo():
             raise AssertionError(f"{p} answered without the token")
         except urllib.error.HTTPError as e:
             assert e.code == 403, (p, e.code)
+    # a request with no Host header at all is never let in, env var or not (skip_host: nothing sent)
+    port = int(base.rsplit(":", 1)[1])
+    conn = http.client.HTTPConnection("127.0.0.1", port)
+    try:
+        conn.putrequest("GET", "/state?t=" + tok, skip_host=True)
+        conn.endheaders()
+        r = conn.getresponse()
+        assert r.status == 403, r.status
+        r.read()
+    finally:
+        conn.close()
     # AI_EDITOR_PUBLIC_HOST: unset, a tunnel's Host is refused same as any other; set, it is allowed
     try:
         urllib.request.urlopen(urllib.request.Request(base + "/state?t=" + tok, headers={"Host": "edit.example"}))

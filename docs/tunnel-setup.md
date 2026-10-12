@@ -33,9 +33,24 @@ ingress:
 (`<tunnel-id>` is printed by `cloudflared tunnel create` — copy the exact filename it creates in
 `~/.cloudflared/`.)
 
+## Allow the public host
+
+`home.py`'s request gate refuses any request whose `Host` header isn't `127.0.0.1`/`localhost` —
+a DNS-rebinding guard. A tunnel's requests always carry `Host: edit.hypnotiicmedia.com`, so this
+has to be opted into explicitly, every time `home.py serve` runs:
+
+```bash
+AI_EDITOR_PUBLIC_HOST=edit.hypnotiicmedia.com python3 "$H" serve
+```
+
+Without it, every request through the tunnel gets refused (403) regardless of the token. If
+`home.py serve` is already running without this set, stop it and start it again with the variable
+in place — `serve` reuses an already-running server, so just running `AI_EDITOR_PUBLIC_HOST=...
+home.py serve` a second time alongside the unset one does nothing.
+
 ## Run it
 
-Every time the editor's home page is open (alongside `home.py serve`):
+Every time the editor's home page is open (alongside `home.py serve`, with the env var above set):
 
 ```bash
 cloudflared tunnel run edit-hypnotiic
